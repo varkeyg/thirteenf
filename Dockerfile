@@ -36,6 +36,6 @@ RUN vcpkg install nlohmann-json
 RUN vcpkg install glog
 RUN vcpkg install tsl-ordered-map
 RUN vcpkg install rocksdb
-RUN vcpkg install boost
+RUN vcpkg install boost-date-time
+RUN vcpkg install boost-algorithm
 
-WORKDIR "/home/gvarkey/work"
