@@ -39,3 +39,5 @@ RUN vcpkg install rocksdb
 RUN vcpkg install boost-date-time
 RUN vcpkg install boost-algorithm
 
+WORKDIR "/home/gvarkey/work"
+
