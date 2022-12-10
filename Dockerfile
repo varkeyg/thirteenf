@@ -20,7 +20,7 @@ RUN apt-get update
 
 RUN apt-get install -y build-essential cmake git openssh-server unzip tar\
     gdb pkg-config valgrind systemd-coredump g++ gcc python3 python3-pip curl zip ninja-build software-properties-common\
-    libssl-dev vim gnupg zsh clang-tidy clang-format
+    libssl-dev vim gnupg zsh clangd clang-tidy clang-format
 
 RUN pip3 install requests mysql-connector-python
 
@@ -55,6 +55,14 @@ RUN vcpkg install parquet
 RUN vcpkg install parquet
 RUN vcpkg install libcuckoo
 RUN vcpkg install jemalloc
+
+WORKDIR "/home/gvarkey/gremlin"
+RUN wget https://www.apache.org/dyn/closer.lua/tinkerpop/3.6.1/apache-tinkerpop-gremlin-console-3.6.1-bin.zip
+RUN wget https://www.apache.org/dyn/closer.lua/tinkerpop/3.6.1/apache-tinkerpop-gremlin-server-3.6.1-bin.zip
+RUN unzip apache-tinkerpop-gremlin-console-3.6.1-bin.zip
+RUN unzip apache-tinkerpop-gremlin-server-3.6.1-bin.zip
+
+
 
 WORKDIR "/home/gvarkey/workspace"
 RUN git clone git@github.com:varkeyg/thirteenf.git

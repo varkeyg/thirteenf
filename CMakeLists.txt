@@ -14,7 +14,7 @@ find_package(RocksDB CONFIG REQUIRED)
 find_package(tinyxml2 CONFIG REQUIRED)
 find_package(tsl-ordered-map CONFIG REQUIRED)
 
-add_library(${mwlib} STATIC include/helper.h src/helper.cpp)
+add_library(${mwlib} STATIC include/helpertools.h src/helpertools.cpp)
 target_include_directories(${mwlib} PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>  $<INSTALL_INTERFACE:>)
 
 
