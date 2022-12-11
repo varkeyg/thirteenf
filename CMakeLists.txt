@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.2)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -fsanitize=address")
-set(mwlib mwlib)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+set(libtf thirteenf)
 project(mw)
 
 find_package(CURL CONFIG REQUIRED)
@@ -14,29 +15,33 @@ find_package(RocksDB CONFIG REQUIRED)
 find_package(tinyxml2 CONFIG REQUIRED)
 find_package(tsl-ordered-map CONFIG REQUIRED)
 
-add_library(${mwlib} STATIC include/helpertools.h src/helpertools.cpp)
-target_include_directories(${mwlib} PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>  $<INSTALL_INTERFACE:>)
+add_library(${libtf} STATIC include/helpertools.h src/helpertools.cpp)
+# target_include_directories(${libtf} PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>  $<INSTALL_INTERFACE:>)
+target_include_directories(${libtf} PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
 
-target_link_libraries(${mwlib} PUBLIC CURL::libcurl)
-target_link_libraries(${mwlib} PUBLIC glog::glog)
-target_link_libraries(${mwlib} PUBLIC GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
-target_link_libraries(${mwlib} PUBLIC nlohmann_json::nlohmann_json)
-target_link_libraries(${mwlib} PUBLIC RocksDB::rocksdb)
-target_link_libraries(${mwlib} PUBLIC tinyxml2::tinyxml2)
-target_link_libraries(${mwlib} PUBLIC tsl::ordered_map)
+target_link_libraries(${libtf} PUBLIC CURL::libcurl)
+target_link_libraries(${libtf} PUBLIC glog::glog)
+target_link_libraries(${libtf} PUBLIC GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
+target_link_libraries(${libtf} PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(${libtf} PUBLIC RocksDB::rocksdb)
+target_link_libraries(${libtf} PUBLIC tinyxml2::tinyxml2)
+target_link_libraries(${libtf} PUBLIC tsl::ordered_map)
 
-export(TARGETS ${mwlib} FILE ${mwlib}Targets.cmake)
-export(PACKAGE ${mwlib})
-install(TARGETS ${mwlib}
-   EXPORT ${mwlib}Targets
-   LIBRARY DESTINATION lib
-   INCLUDES DESTINATION include
-)
+# export(TARGETS ${libtf} FILE ${libtf}Targets.cmake)
+# export(PACKAGE ${libtf})
+# install(TARGETS ${libtf}
+#    EXPORT ${libtf}Targets
+#    LIBRARY DESTINATION lib
+#    INCLUDES DESTINATION include
+# )
 
-install(FILES include/helpertools.h DESTINATION include)
-install(EXPORT ${mwlib}Targets
-   FILE ${mwlib}Config.cmake
-   DESTINATION lib/cmake/${mwlib}
-)
+# install(FILES include/helpertools.h DESTINATION include)
+# install(EXPORT ${libtf}Targets
+#    FILE ${libtf}Config.cmake
+#    DESTINATION lib/cmake/${libtf}
+# )
 
+add_executable(thirteenf_test test/thirteenf_test.cpp)
+target_include_directories(thirteenf_test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(thirteenf_test PUBLIC ${libtf})
