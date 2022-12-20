@@ -1,8 +1,18 @@
 #include "helpertools.h"
 #include <curl/curl.h>
 #include <sstream>
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
+
+
+std::vector<std::string> helpertools::split(std::string inp, const std::string& delim) {
+    std::vector<std::string> entries;
+    boost::split(entries, inp, boost::is_any_of(delim));
+    return entries;
+};
+
+
 
 rocksdb::Status helpertools::KVStore::put(const std::string &key, const std::string &value) {
     auto status = db->Put(rocksdb::WriteOptions(), key, value);
@@ -13,7 +23,7 @@ rocksdb::Status helpertools::KVStore::put(const std::string &key, const std::str
 
 
 std::string helpertools::KVStore::get(const std::string &key) {
-    std::string value{""};
+    std::string value;
     rocksdb::Status s;
     s = db->Get(rocksdb::ReadOptions(), key, &value);
     return s.IsNotFound() ? string{""} : value;

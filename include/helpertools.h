@@ -5,10 +5,11 @@
 #include <iostream>
 #include <rocksdb/db.h>
 #include <memory>
+#include <vector>
 
 namespace helpertools {
 
-
+    std::vector<std::string> split(std::string inp, const std::string& delim);
 
     class KVStore {
     public:
@@ -17,7 +18,7 @@ namespace helpertools {
             rocksdb::Status status    = rocksdb::DB::Open(options, cache_location, &db);
             assert(status.ok());
         };
-        KVStore(std::string &cache_location)
+        explicit KVStore(const std::string& cache_location)
             : KVStore() {
             this->cache_location = cache_location;
         };
@@ -27,7 +28,7 @@ namespace helpertools {
 
     private:
         std::string cache_location{"/tmp/rocksdb_data"};
-        rocksdb::DB *db;
+        rocksdb::DB *db{};
         rocksdb::Options options;
     };
 
@@ -49,7 +50,7 @@ namespace helpertools {
 
     class WebTools {
     public:
-        WebTools(std::shared_ptr<helpertools::KVStore> kvs):kvs{kvs}{};
+        explicit WebTools(std::shared_ptr<helpertools::KVStore>& kvs):kvs{kvs}{};
         http_result http_get(const std::string &url);
 
     private:
@@ -58,6 +59,7 @@ namespace helpertools {
     };
 
 
+    
 
 }  // namespace helpertools
 

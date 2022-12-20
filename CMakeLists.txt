@@ -14,7 +14,7 @@ find_package(RocksDB CONFIG REQUIRED)
 find_package(tinyxml2 CONFIG REQUIRED)
 find_package(tsl-ordered-map CONFIG REQUIRED)
 
-add_library(${libtf} STATIC include/helpertools.h src/helpertools.cpp)
+add_library(${libtf} STATIC include/helpertools.h src/helpertools.cpp include/thirteenf.h src/thirteenf.cpp)
 # target_include_directories(${libtf} PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>  $<INSTALL_INTERFACE:>)
 target_include_directories(${libtf} PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
@@ -44,3 +44,7 @@ target_link_libraries(${libtf} PUBLIC tsl::ordered_map)
 add_executable(thirteenf_test test/thirteenf_test.cpp)
 target_include_directories(thirteenf_test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(thirteenf_test PUBLIC ${libtf})
+
+add_executable(tfapp src/tfapp.cpp)
+target_include_directories(tfapp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(tfapp PUBLIC ${libtf})
