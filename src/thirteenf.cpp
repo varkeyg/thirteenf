@@ -3,7 +3,7 @@
 #include <boost/date_time.hpp>
 #include <thread>
 #include <tinyxml2.h>
-
+#include <regex>
 
 using namespace std;
 using namespace boost::gregorian;
@@ -55,9 +55,10 @@ thirteenf::sec_index_ptr thirteenf::Index::get_index() {
 
 
 void thirteenf::RuntimeContext::initialize() {
-    kvs      = std::make_shared<helpertools::KVStore>(cache_location);
-    wt       = std::make_shared<helpertools::WebTools>(kvs);
-    cik_list = std::make_shared<std::vector<std::string>>(helpertools::split(cik_string, ","));
+    kvs       = std::make_shared<helpertools::KVStore>(cache_location);
+    wt        = std::make_shared<helpertools::WebTools>(kvs);
+    cik_list  = std::make_shared<std::vector<std::string>>(helpertools::split(cik_string, ","));
+    sql_store = std::make_shared<helpertools::SqliteDB>("/tmp/sqlite.db");
 }
 
 
@@ -123,22 +124,105 @@ thirteenf::holdings_ptr thirteenf::Holdings::get_holdings() {
 
 void thirteenf::Holdings::get_holdings_from_filing(std::unordered_map<std::string, std::string> &filing) {
     auto url = std::string{sec_site} + filing["file_name"];
+    auto x   = rt.get_webtools()->http_get(url);
+    strmap header;
+    get_header_info(header, x.response);
+    clean_tags(x.response);
 
-    auto x       = rt.get_webtools()->http_get(url);
     auto start   = x.response.find("<informationTable");
     auto length  = (x.response.find("</informationTable>") - start) + (string{"</informationTable>"}.size());
     auto xml_str = x.response.substr(start, length);
+
     tinyxml2::XMLDocument doc;
     doc.Parse(xml_str.c_str());
     if (!doc.Error()) {
         auto infoTable = doc.FirstChildElement("informationTable")->FirstChildElement("infoTable");
         while (infoTable != nullptr) {
-            cout << infoTable->FirstChildElement("nameOfIssuer")->GetText() << endl;
+            holdings.holder_cik.push_back(filing["cik"]);
+            holdings.holder_name.push_back(filing["holder"]);
+            holdings.form_type.push_back(filing["form_type"]);
+            holdings.date_filed.push_back(filing["date_filed"]);
+            holdings.filing_url.push_back(url);
+            holdings.effective_date.push_back(header["effective_date"]);
+            holdings.period_date.push_back(header["period_date"]);
+            holdings.holding_name.push_back(infoTable->FirstChildElement("nameOfIssuer")->GetText());
+            holdings.sec_type.push_back(infoTable->FirstChildElement("titleOfClass")->GetText());
+            holdings.cusip.push_back(infoTable->FirstChildElement("cusip")->GetText());
+            holdings.market_value.push_back(atoi(infoTable->FirstChildElement("value")->GetText()) * 1000);
+            auto shprn = infoTable->FirstChildElement("shrsOrPrnAmt");
+            holdings.quantity.push_back(atoi(shprn->FirstChildElement("sshPrnamt")->GetText()));
+            holdings.qty_type.push_back(shprn->FirstChildElement("sshPrnamtType")->GetText());
+
+            if (infoTable->FirstChildElement("putCall") != nullptr) {
+                holdings.put_call.push_back(infoTable->FirstChildElement("putCall")->GetText());
+            } else {
+                holdings.put_call.push_back("");
+            }
             infoTable = infoTable->NextSiblingElement();
         }
     }
-
-
     const lock_guard<mutex> lock(holdings_mutex);
-    // holdings.cik.push_back(cik);
 }
+
+
+
+
+void thirteenf::Holdings::get_header_info(strmap &header, const std::string &filing) {
+    auto edate = "EFFECTIVENESS DATE:";
+    auto pdate = "CONFORMED PERIOD OF REPORT:";
+
+    auto start        = filing.find("<SEC-HEADER>");
+    auto length       = (filing.find("</SEC-HEADER>") - start) + (string{"</SEC-HEADER>"}.size());
+    auto header_text  = filing.substr(start, length);
+    auto header_lines = helpertools::split(header_text, "\n");
+    for (auto &line : header_lines) {
+        if (line.find(edate) != string::npos) {
+            line                     = regex_replace(line, regex(edate), "");
+            line                     = regex_replace(line, regex("\\s+"), "");
+            header["effective_date"] = line;
+        }
+        if (line.find(pdate) != string::npos) {
+            line                  = regex_replace(line, regex(pdate), "");
+            line                  = regex_replace(line, regex("\\s+"), "");
+            header["period_date"] = line;
+        }
+    }
+};
+
+
+void thirteenf::Holdings::clean_tags(std::string &inp) {
+    std::set<std::string> tags{"ns1:", "ns1", "ns2:", "N1:", "n1:", "ns4:", "eis:"};
+    for (auto &tag : tags) {
+        boost::replace_all(inp, tag, "");
+    }
+}
+
+
+
+std::unique_ptr<std::string> thirteenf::Holdings::get_holdings_to_sql_statements() {
+    std::stringstream ss;
+    std::string prefix = {"insert into holdings values ( "};
+    for (size_t i = 0; i < holdings.holder_cik.size(); i++) {
+        ss << prefix;
+        ss << "'" << holdings.holder_cik.at(i) << "', ";
+        ss << "'" << holdings.holder_name.at(i) << "', ";
+        ss << "'" << holdings.form_type.at(i) << "', ";
+        ss << "'" << holdings.date_filed.at(i) << "', ";
+        ss << "'" << holdings.filing_url.at(i) << "', ";
+        ss << "'" << holdings.effective_date.at(i) << "', ";
+        ss << "'" << holdings.period_date.at(i) << "', ";
+
+        ss << "'" << holdings.holding_name.at(i) << "', ";
+        ss << "'" << holdings.sec_type.at(i) << "', ";
+        ss << "'" << holdings.cusip.at(i) << "', ";
+        ss << holdings.market_value.at(i) << ", ";
+        ss << holdings.quantity.at(i) << ", ";
+        ss << "'" << holdings.qty_type.at(i) << "', ";
+        // vecint quantity;
+        // vecstr qty_type;
+        // vecstr put_call;
+        ss << "'" << holdings.put_call.at(i) << "');\n";
+    }
+    // cout << ss.str() << endl;
+    return std::make_unique<std::string>(ss.str());
+};

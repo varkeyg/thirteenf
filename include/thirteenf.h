@@ -11,12 +11,12 @@
 #include <mutex>
 
 
-// using vecstr = std::vector<std::string> &;
-// using Wt     = helpertools::WebTools &;
 
 namespace thirteenf {
 
-
+    using vecstr = std::vector<std::string>;
+    using vecint = std::vector<uint32_t>;
+    using strmap = std::unordered_map<std::string, std::string>;
 
     struct sec_index {
         std::vector<std::string> cik;
@@ -52,14 +52,29 @@ namespace thirteenf {
         }
     };
 
-    struct holdings_t{
-        std::vector<std::string> cik;
+
+    // Final dataset.
+    struct holdings_t {
+        vecstr holder_cik;
+        vecstr holder_name;
+        vecstr form_type;
+        vecstr date_filed;
+        vecstr filing_url;
+        vecstr effective_date;
+        vecstr period_date;
+        vecstr holding_name;
+        vecstr sec_type;
+        vecstr cusip;
+        vecint market_value;
+        vecint quantity;
+        vecstr qty_type;
+        vecstr put_call;
     };
 
 
 
     using sec_index_ptr = std::shared_ptr<sec_index>;
-    using holdings_ptr = std::shared_ptr<holdings_t>;
+    using holdings_ptr  = std::shared_ptr<holdings_t>;
 
 
 
@@ -83,12 +98,14 @@ namespace thirteenf {
         std::shared_ptr<std::vector<std::string>> get_cik_list();
         sec_index_ptr index;
         holdings_ptr holdings;
+        std::shared_ptr<helpertools::SqliteDB> sql_store;
 
     private:
         void initialize();
         const std::string &cache_location;
         std::shared_ptr<helpertools::KVStore> kvs;
         std::shared_ptr<helpertools::WebTools> wt;
+
         std::shared_ptr<std::vector<std::string>> cik_list;
 
     protected:
@@ -96,8 +113,6 @@ namespace thirteenf {
         const std::string &to_date;
         const std::string &cik_string;
     };
-
-
 
 
 
@@ -125,16 +140,20 @@ namespace thirteenf {
         explicit Holdings(RuntimeContext &rt)
             : rt{rt} {};
         void process();
-        holdings_ptr  get_holdings();
+        holdings_ptr get_holdings();
+        std::unique_ptr<std::string> get_holdings_to_sql_statements();
     private:
         std::string sec_site = "https://www.sec.gov/Archives/";
-        int index_entry = 0;
+        int index_entry      = 0;
         std::mutex index_entry_mutex;
         holdings_t holdings;
         std::mutex holdings_mutex;
         RuntimeContext rt;
         void process_filings();
-        void get_holdings_from_filing(std::unordered_map<std::string, std::string>& filing);
+        void get_holdings_from_filing(std::unordered_map<std::string, std::string> &filing);
+        void get_header_info(strmap &header, const std::string &filing);
+        void clean_tags(std::string &inp);
+        const std::string cusip_sym = "https://www.sec.gov/files/data/fails-deliver-data/cnsfails202211b.zip";
     };
 
 

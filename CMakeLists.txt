@@ -13,6 +13,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(RocksDB CONFIG REQUIRED)
 find_package(tinyxml2 CONFIG REQUIRED)
 find_package(tsl-ordered-map CONFIG REQUIRED)
+find_package(SQLiteCpp CONFIG REQUIRED)
 
 add_library(${libtf} STATIC include/helpertools.h src/helpertools.cpp include/thirteenf.h src/thirteenf.cpp)
 # target_include_directories(${libtf} PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>  $<INSTALL_INTERFACE:>)
@@ -26,6 +27,9 @@ target_link_libraries(${libtf} PUBLIC nlohmann_json::nlohmann_json)
 target_link_libraries(${libtf} PUBLIC RocksDB::rocksdb)
 target_link_libraries(${libtf} PUBLIC tinyxml2::tinyxml2)
 target_link_libraries(${libtf} PUBLIC tsl::ordered_map)
+target_link_libraries(${libtf} PUBLIC SQLiteCpp)
+
+
 
 # export(TARGETS ${libtf} FILE ${libtf}Targets.cmake)
 # export(PACKAGE ${libtf})

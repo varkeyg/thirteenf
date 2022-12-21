@@ -17,6 +17,6 @@ int main(int argc, char *argv[]) {
     thirteenf::Holdings h{rt};
     h.process();
     rt.holdings = h.get_holdings();
-    std::cout << rt.holdings->cik.size() << std::endl;
+    std::cout << rt.holdings->holder_cik.size() << std::endl;
     return 0;
 };

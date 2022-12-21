@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include <boost/date_time.hpp>
+#include <sstream>
 
 using namespace std;
 
@@ -39,10 +40,34 @@ protected:
 TEST_F(TestInfra, test003) {
 
     thirteenf::Index ix{rt};
-   rt.index = ix.get_index();
-    //index->print();
-    //rt.add_index(std::move(index));
-    rt.index->print();
+    rt.index = ix.get_index();
+    thirteenf::Holdings h{rt};
+    h.process();
+    rt.holdings = h.get_holdings();
+    std::cout << rt.holdings->holder_cik.size() << std::endl;
+
+    stringstream ss;
+    ss << "create table holdings ( \n";
+    ss << "holder_cik text,\n";
+    ss << "holder_name text,\n";
+    ss << "form_type text,\n";
+    ss << "date_filed text,\n";
+    ss << "filing_url text,\n";
+    ss << "effective_date text,\n";
+    ss << "period_date text,\n";
+    ss << "holding_name text,\n";
+    ss << "sec_type text,\n";
+    ss << "cusip text,\n";
+    ss << "market_value integer,\n";
+    ss << "quantity integer,\n";
+    ss << "qty_type text,\n";
+    ss << "put_call text\n)";
+
+
+
+    rt.sql_store->runsql("drop table if exists holdings");
+    rt.sql_store->runsql(ss.str());
+    rt.sql_store->runsql(*h.get_holdings_to_sql_statements());
 };
 
 int main(int argc, char **argv) {

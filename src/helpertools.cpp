@@ -91,3 +91,12 @@ helpertools::http_result helpertools::WebTools::http_get(const std::string &url)
     }
     return hr;
 };
+
+
+
+void helpertools::SqliteDB::runsql(const std::string& sql) {
+
+    SQLite::Transaction transaction(*db);
+    db->exec(sql);
+    transaction.commit();
+}
