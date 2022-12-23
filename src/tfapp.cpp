@@ -9,7 +9,8 @@ int main(int argc, char *argv[]) {
     std::string cache_location{"tmp/rocksdb_data"};
     std::string from_date = "2022/08/10";
     std::string to_date   = "2022/08/15";
-    thirteenf::RuntimeContext rt{cache_location, from_date, to_date, "1067983,93751"};
+    std::string cns_fails_data = "../resources/cnsfails.txt";
+    thirteenf::RuntimeContext rt{cache_location, from_date, to_date, "1067983,93751", cns_fails_data};
 
     thirteenf::Index ix{rt};
     rt.index = ix.get_index();

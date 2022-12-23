@@ -76,6 +76,7 @@
     "stack": "cpp",
     "strstream": "cpp",
     "typeindex": "cpp",
-    "thread": "cpp"
+    "thread": "cpp",
+    "regex": "cpp"
   }
 }

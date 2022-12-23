@@ -15,7 +15,8 @@ protected:
     //helpertools::WebTools wt{kvs};
     std::string from_date = "2022/08/10";
     std::string to_date   = "2022/08/15";
-    thirteenf::RuntimeContext rt{cache_location,from_date, to_date, "1067983,93751"};
+    std::string cns_fails_data = "../resources/cnsfails.txt";
+    thirteenf::RuntimeContext rt{cache_location, from_date, to_date, "1067983,93751", cns_fails_data};
 };
 //
 //
@@ -58,6 +59,7 @@ TEST_F(TestInfra, test003) {
     ss << "holding_name text,\n";
     ss << "sec_type text,\n";
     ss << "cusip text,\n";
+    ss << "ticker text,\n";
     ss << "market_value integer,\n";
     ss << "quantity integer,\n";
     ss << "qty_type text,\n";

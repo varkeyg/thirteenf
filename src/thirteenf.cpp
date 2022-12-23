@@ -85,6 +85,7 @@ std::shared_ptr<std::vector<std::string>> thirteenf::RuntimeContext::get_cik_lis
 
 
 void thirteenf::Holdings::process() {
+    load_cusip_ticker_map();
     vector<thread> workers;
     for (int i = 0; i < 5; ++i) {
         workers.emplace_back(thread(&thirteenf::Holdings::process_filings, this));
@@ -147,7 +148,9 @@ void thirteenf::Holdings::get_holdings_from_filing(std::unordered_map<std::strin
             holdings.period_date.push_back(header["period_date"]);
             holdings.holding_name.push_back(infoTable->FirstChildElement("nameOfIssuer")->GetText());
             holdings.sec_type.push_back(infoTable->FirstChildElement("titleOfClass")->GetText());
-            holdings.cusip.push_back(infoTable->FirstChildElement("cusip")->GetText());
+            auto cusip = infoTable->FirstChildElement("cusip")->GetText();
+            holdings.cusip.push_back(cusip);
+            holdings.ticker.push_back(rt.get_kvstore()->get(cusip));
             holdings.market_value.push_back(atoi(infoTable->FirstChildElement("value")->GetText()) * 1000);
             auto shprn = infoTable->FirstChildElement("shrsOrPrnAmt");
             holdings.quantity.push_back(atoi(shprn->FirstChildElement("sshPrnamt")->GetText()));
@@ -215,6 +218,7 @@ std::unique_ptr<std::string> thirteenf::Holdings::get_holdings_to_sql_statements
         ss << "'" << holdings.holding_name.at(i) << "', ";
         ss << "'" << holdings.sec_type.at(i) << "', ";
         ss << "'" << holdings.cusip.at(i) << "', ";
+        ss << "'" << holdings.ticker.at(i) << "', ";
         ss << holdings.market_value.at(i) << ", ";
         ss << holdings.quantity.at(i) << ", ";
         ss << "'" << holdings.qty_type.at(i) << "', ";
@@ -225,4 +229,23 @@ std::unique_ptr<std::string> thirteenf::Holdings::get_holdings_to_sql_statements
     }
     // cout << ss.str() << endl;
     return std::make_unique<std::string>(ss.str());
+};
+
+
+
+std::string thirteenf::RuntimeContext::get_cns_location() {
+    return cns_fails_data;
+};
+
+
+
+void thirteenf::Holdings::load_cusip_ticker_map() {
+    std::string line;
+    ifstream f(rt.get_cns_location());
+    while (std::getline(f, line)) {
+        auto fields = helpertools::split(line, "|");
+        if (fields.size() == 6) {
+            rt.get_kvstore()->put(fields.at(1), fields.at(2));
+        }
+    }
 };

@@ -65,6 +65,7 @@ namespace thirteenf {
         vecstr holding_name;
         vecstr sec_type;
         vecstr cusip;
+        vecstr ticker;
         vecint market_value;
         vecint quantity;
         vecstr qty_type;
@@ -84,11 +85,13 @@ namespace thirteenf {
         RuntimeContext(const std::string &cache_location,
                        const std::string &from_date,
                        const std::string &to_date,
-                       const std::string &cik_string)
+                       const std::string &cik_string,
+                       const std::string &cns_fails_data)
             : cache_location{cache_location},
               from_date{from_date},
               to_date{to_date},
-              cik_string{cik_string} {
+              cik_string{cik_string},
+              cns_fails_data{cns_fails_data} {
             initialize();
         };
         std::shared_ptr<helpertools::KVStore> get_kvstore();
@@ -99,6 +102,7 @@ namespace thirteenf {
         sec_index_ptr index;
         holdings_ptr holdings;
         std::shared_ptr<helpertools::SqliteDB> sql_store;
+        std::string get_cns_location();
 
     private:
         void initialize();
@@ -107,11 +111,13 @@ namespace thirteenf {
         std::shared_ptr<helpertools::WebTools> wt;
 
         std::shared_ptr<std::vector<std::string>> cik_list;
+        
 
     protected:
         const std::string &from_date;
         const std::string &to_date;
         const std::string &cik_string;
+        const std::string &cns_fails_data;
     };
 
 
@@ -154,6 +160,7 @@ namespace thirteenf {
         void get_header_info(strmap &header, const std::string &filing);
         void clean_tags(std::string &inp);
         const std::string cusip_sym = "https://www.sec.gov/files/data/fails-deliver-data/cnsfails202211b.zip";
+        void load_cusip_ticker_map();
     };
 
 
