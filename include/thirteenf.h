@@ -11,6 +11,7 @@
 #include <mutex>
 
 
+//Test comment
 
 namespace thirteenf {
 
@@ -148,6 +149,8 @@ namespace thirteenf {
         void process();
         holdings_ptr get_holdings();
         std::unique_ptr<std::string> get_holdings_to_sql_statements();
+        std::string get_holdings_table_ddl();
+
     private:
         std::string sec_site = "https://www.sec.gov/Archives/";
         int index_entry      = 0;

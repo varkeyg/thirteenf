@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 #include <SQLiteCpp/SQLiteCpp.h>
+#include "spdlog/spdlog.h"
 
 namespace helpertools {
 
@@ -15,8 +16,10 @@ namespace helpertools {
     class KVStore {
     public:
         KVStore() {
+            //std::cout << "Initiliazing cache_location to " << cache_location << std::endl;
             options.create_if_missing = true;
             rocksdb::Status status    = rocksdb::DB::Open(options, cache_location, &db);
+            
             assert(status.ok());
         };
         explicit KVStore(const std::string &cache_location)
@@ -69,6 +72,8 @@ namespace helpertools {
               };
 
         void runsql(const std::string& sql);
+        std::shared_ptr<SQLite::Statement> runquery(std::string sql);
+
     private:
         const std::string db_location;
         std::shared_ptr<SQLite::Database> db;

@@ -77,6 +77,8 @@
     "strstream": "cpp",
     "typeindex": "cpp",
     "thread": "cpp",
-    "regex": "cpp"
+    "regex": "cpp",
+    "queue": "cpp",
+    "semaphore": "cpp"
   }
 }

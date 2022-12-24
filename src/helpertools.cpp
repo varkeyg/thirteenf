@@ -6,8 +6,11 @@
 using namespace std;
 
 
-std::vector<std::string> helpertools::split(std::string inp, const std::string& delim) {
+std::vector<std::string> helpertools::split(std::string inp, const std::string &delim) {
     std::vector<std::string> entries;
+    if (inp.empty()){
+        return entries;
+    }
     boost::split(entries, inp, boost::is_any_of(delim));
     return entries;
 };
@@ -47,8 +50,12 @@ helpertools::http_result helpertools::WebTools::http_get(const std::string &url)
     hr.response = kvs->get(url);
     hr.error    = "";
     if (!hr.response.empty()) {
+        //spdlog::info("Using cached filing data for url {0}: ", url);
         return hr;
     }
+    // else{
+    //     spdlog::info("cache not found for url {0}: ", url);
+    // }
     std::string response;
     std::string error_message;
     long http_code = 0;
@@ -94,9 +101,14 @@ helpertools::http_result helpertools::WebTools::http_get(const std::string &url)
 
 
 
-void helpertools::SqliteDB::runsql(const std::string& sql) {
-
+void helpertools::SqliteDB::runsql(const std::string &sql) {
     SQLite::Transaction transaction(*db);
     db->exec(sql);
     transaction.commit();
 }
+
+
+std::shared_ptr<SQLite::Statement> helpertools::SqliteDB::runquery(std::string sql) {
+    auto query = std::make_shared<SQLite::Statement>(*db, sql);
+    return query;
+};
