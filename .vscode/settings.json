@@ -79,6 +79,14 @@
     "thread": "cpp",
     "regex": "cpp",
     "queue": "cpp",
-    "semaphore": "cpp"
+    "semaphore": "cpp",
+    "__std_stream": "cpp",
+    "charconv": "cpp",
+    "format": "cpp",
+    "forward_list": "cpp",
+    "numeric": "cpp",
+    "ranges": "cpp",
+    "span": "cpp",
+    "valarray": "cpp"
   }
 }

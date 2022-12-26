@@ -10,7 +10,7 @@ BinPackArguments: false
 BinPackParameters: false
 ExperimentalAutoDetectBinPacking: false
 AllowAllParametersOfDeclarationOnNextLine: false
-PackConstructorInitializers: Never
+#PackConstructorInitializers: Never
 NamespaceIndentation: All
 SortIncludes: Never
 AllowShortFunctionsOnASingleLine: false

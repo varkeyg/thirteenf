@@ -8,217 +8,189 @@
 using namespace std;
 using namespace boost::gregorian;
 
+void thirteenf::RuntimeConfig::init() {
+    auto values     = helpertools::split(run_params.cik_filter, ",");
+    cik_filter_set  = std::set<std::string>(values.begin(), values.end());
+    auto forms      = helpertools::split(run_params.form_filter, ",");
+    form_filter_set = std::set<std::string>(forms.begin(), forms.end());
+};
 
 
-void thirteenf::Index::build_index_urls() {
+
+bool thirteenf::RuntimeConfig::include_cik(std::string cik) {
+    if (run_params.cik_filter.empty()) {
+        return true;
+    } else {
+        if (cik_filter_set.contains(cik)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+};
+
+
+
+bool thirteenf::RuntimeConfig::include_form(std::string form_name) {
+    if (run_params.form_filter.empty()) {
+        return true;
+    } else {
+        if (form_filter_set.contains(form_name)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+};
+
+
+
+void thirteenf::EdgarIndex::load_index_urls() {
+    vecstr index_urls;
     std::set<std::string> weekends{"6", "0"};
-    auto process_date = from_string(rt.get_from_date());
-    auto end_date     = from_string(rt.get_to_date());
+    auto process_date = from_string(rtc.run_params.from_date);
+    auto end_date     = from_string(rtc.run_params.to_date);
     auto get_quarter  = [](auto process_date) { return static_cast<short>(ceil(static_cast<float>(process_date.month()) / 3)); };
     while (process_date <= end_date) {
         if (!(weekends.contains(to_string(process_date.day_of_week())))) {
-            std::string url{sec_site + "edgar/daily-index/" + to_string(process_date.year()) + "/QTR" +
+            std::string url{rtc.run_params.sec_site + "edgar/daily-index/" + to_string(process_date.year()) + "/QTR" +
                             to_string(get_quarter(process_date)) + "/master." + to_iso_string(process_date) + ".idx"};
             index_urls.push_back(url);
         }
         process_date = process_date + days(1);
     }
-    spdlog::info("Number of days to process: {0}", index_urls.size());
+    spdlog::info("Generated index urls for days: {0}", index_urls.size());
+    rtc.index_urls = std::make_unique<vecstr>(index_urls);
 };
 
 
 
 
-thirteenf::sec_index_ptr thirteenf::Index::get_index() {
-    bool add_to_index = false;
-    build_index_urls();
-    size_t counter = 0;
-    for (auto &index_url : index_urls) {
-        auto x     = rt.get_webtools()->http_get(index_url);
-        auto lines = helpertools::split(x.response, "\n");
-        for (auto &line : lines) {
-            auto fields = helpertools::split(line, "|");
-            if (fields.size() == 5 and fields.at(0) != "CIK") {
-                add_to_index = rt.get_cik_list()->empty();
-
-                if (!rt.get_cik_list()->empty()) {
-                    add_to_index =
-                        std::find(rt.get_cik_list()->begin(), rt.get_cik_list()->end(), fields.at(0)) != rt.get_cik_list()->end();
-                }
-                if (add_to_index) {
-                    if (fields.at(2).rfind("13F-HR", 0) == 0) {
-                        sidx.cik.push_back(fields.at(0));
-                        sidx.holder.push_back(fields.at(1));
-                        sidx.form_type.push_back(fields.at(2));
-                        sidx.date_filed.push_back(fields.at(3));
-                        sidx.file_name.push_back(fields.at(4));
-                    }
+void thirteenf::EdgarIndex::load_index() {
+    size_t cntr = 0;
+    for (auto &url : *rtc.index_urls) {
+        try {
+            auto x     = rtc.wt->http_get(url);
+            auto lines = helpertools::split(x.response, "\n");
+            for (auto &line : lines) {
+                auto fields = helpertools::split(line, "|");
+                strmap record;
+                if (fields.size() == 5 and rtc.include_cik(fields.at(0)) and rtc.include_form(fields.at(2))) {
+                    record["cik"]        = fields.at(0);
+                    record["holder"]     = fields.at(1);
+                    record["form_type"]  = fields.at(2);
+                    record["date_filed"] = fields.at(3);
+                    record["file_name"]  = fields.at(4);
+                    rtc.index->push_back(record);
                 }
             }
+            // spdlog::info("Loaded {0} filing index entries for {1}", rtc.index->size(), helpertools::split(url, ".").at(3));
+        } catch (const std::exception &e) {
+            spdlog::error(e.what() + std::string(" Error processing url ") + url);
+        };
+        cntr++;
+        if (cntr % 30 == 0) {
+            spdlog::info("Extracted filings for {0} days", cntr);
         }
-        counter++;
     }
-    return std::make_shared<thirteenf::sec_index>(sidx);
-}
-
-
-
-void thirteenf::RuntimeContext::initialize() {
-    // LOG(INFO) << "Google logging!";
-    spdlog::info("Applying filter for CIK id's: {0} ", cik_string);
-
-    kvs       = std::make_shared<helpertools::KVStore>(cache_location);
-    wt        = std::make_shared<helpertools::WebTools>(kvs);
-    cik_list  = std::make_shared<std::vector<std::string>>(helpertools::split(cik_string, ","));
-    sql_store = std::make_shared<helpertools::SqliteDB>("/tmp/sqlite.db");
-}
-
-
-
-std::shared_ptr<helpertools::KVStore> thirteenf::RuntimeContext::get_kvstore() {
-    return kvs;
-}
-
-
-std::shared_ptr<helpertools::WebTools> thirteenf::RuntimeContext::get_webtools() {
-    return wt;
-}
-std::string thirteenf::RuntimeContext::get_from_date() {
-    return from_date;
-}
-std::string thirteenf::RuntimeContext::get_to_date() {
-    return to_date;
-}
-std::shared_ptr<std::vector<std::string>> thirteenf::RuntimeContext::get_cik_list() {
-    // if(!cik_list->empty()){
-    //     spdlog::info("Applying filter: {0} for CIK values",cik_list->size());
-    // }
-    return cik_list;
-}
+    spdlog::info("Extracted filings for {0} days", cntr);
+};
 
 
 
 
-void thirteenf::Holdings::process() {
+void thirteenf::EdgarHoldings::load_holdings() {
     load_cusip_ticker_map();
     vector<thread> workers;
-    for (int i = 0; i < 1; ++i) {
-        workers.emplace_back(thread(&thirteenf::Holdings::process_filings, this));
+    for (int i = 0; i < rtc.run_params.num_threads; ++i) {
+        workers.emplace_back(thread(&thirteenf::EdgarHoldings::load_holdings_worker, this));
     }
     spdlog::info("Starting {0}", workers.size(), " threads to process filings");
     for (auto &t : workers) {
         t.join();
     }
-}
+};
 
 
+// Running in a thread
+void thirteenf::EdgarHoldings::load_holdings_worker() {
+    while (true) {
+        strmap filing;
+        // Isolate the scope for taking lock
+        {
+            const lock_guard<mutex> lock(index_mutex);
+            if (current_index_id < rtc.index->size()) {
+                filing = rtc.index->at(current_index_id);
+                current_index_id++;
+            } else {
+                break;
+            }
+        }
+        try {
+            rel_type records;
+            auto url = rtc.run_params.sec_site + filing["file_name"];
+            auto x   = rtc.wt->http_get(url);
+            strmap header;
+            get_header_info(header, x.response);
+            clean_tags(x.response);
+            auto start   = x.response.find("<informationTable");
+            auto length  = (x.response.find("</informationTable>") - start) + (string{"</informationTable>"}.size());
+            auto xml_str = x.response.substr(start, length);
 
-void thirteenf::Holdings::process_filings() {
-    try {
-        while (true) {
-            std::unordered_map<std::string, std::string> filing;
-            {
-                const lock_guard<mutex> lock(index_entry_mutex);
-                if (index_entry < rt.index->get_max_index()) {
-                    filing = rt.index->get_record(index_entry);
-                    index_entry++;
-                    spdlog::info("Filings Processed: {0}", index_entry);
-                } else {
-                    break;
+            tinyxml2::XMLDocument doc;
+            doc.Parse(xml_str.c_str());
+            if (!doc.Error()) {
+                auto infoTable = doc.FirstChildElement("informationTable")->FirstChildElement("infoTable");
+                while (infoTable != nullptr) {
+                    strmap rec;
+                    rec["holder_cik"]     = filing["cik"];
+                    rec["holder_name"]    = filing["holder"];
+                    rec["form"]           = filing["form_type"];
+                    rec["date_filed"]     = filing["date_filed"];
+                    rec["effective_date"] = header["effective_date"];
+                    rec["period_date"]    = header["period_date"];
+                    rec["holding_name"]   = infoTable->FirstChildElement("nameOfIssuer")->GetText();
+                    rec["sec_type"]       = infoTable->FirstChildElement("titleOfClass")->GetText();
+                    rec["cusip"]          = infoTable->FirstChildElement("cusip")->GetText();
+                    rec["sym"]            = rtc.kvs->get(rec["cusip"]);
+                    rec["market_value"]   = std::to_string(atol(infoTable->FirstChildElement("value")->GetText()) * 1000);
+                    auto shprn            = infoTable->FirstChildElement("shrsOrPrnAmt");
+                    rec["quantity"]       = std::to_string(atol(shprn->FirstChildElement("sshPrnamt")->GetText()));
+                    rec["quantity_type"]  = shprn->FirstChildElement("sshPrnamtType")->GetText();
+                    if (infoTable->FirstChildElement("putCall") != nullptr) {
+                        rec["put_call"] = infoTable->FirstChildElement("putCall")->GetText();
+                    } else {
+                        rec["put_call"] = "";
+                    }
+                    records.push_back(rec);
+                    infoTable = infoTable->NextSiblingElement();
                 }
             }
-            get_holdings_from_filing(filing);
+            const lock_guard<mutex> lock(holdings_mutex);
+            rtc.holdings->insert(rtc.holdings->end(), records.begin(), records.end());
+            spdlog::info("Extracted {0} records from filing", records.size());
+        } catch (const std::exception &e) {
+            spdlog::error(e.what());
+            spdlog::error(helpertools::map2str(filing));
         }
-    } catch (const std::exception &e) {
-        spdlog::error(e.what());
-    };
-}
-
-
-
-thirteenf::holdings_ptr thirteenf::Holdings::get_holdings() {
-    return std::make_shared<thirteenf::holdings_t>(holdings);
-}
-
-
-std::string thirteenf::Holdings::get_holdings_table_ddl() {
-    stringstream ss;
-    ss << "create table holdings ( \n";
-    ss << "holder_cik       text,\n";
-    ss << "holder_name      text,\n";
-    ss << "form_type        text,\n";
-    ss << "date_filed       text,\n";
-    ss << "filing_url       text,\n";
-    ss << "effective_date   text,\n";
-    ss << "period_date      text,\n";
-    ss << "holding_name     text,\n";
-    ss << "sec_type         text,\n";
-    ss << "cusip            text,\n";
-    ss << "ticker           text,\n";
-    ss << "market_value     integer,\n";
-    ss << "quantity         integer,\n";
-    ss << "qty_type         text,\n";
-    ss << "put_call         text\n)";
-    return ss.str();
+    }
 };
 
 
 
-void thirteenf::Holdings::get_holdings_from_filing(std::unordered_map<std::string, std::string> &filing) {
-    auto url = std::string{sec_site} + filing["file_name"];
-    auto x   = rt.get_webtools()->http_get(url);
-    strmap header;
-    get_header_info(header, x.response);
-    // spdlog::info("Got http response!");
-    clean_tags(x.response);
-    // std::cout << x.response << std::endl;
-    //  std::cout << url << endl;
-    auto start   = x.response.find("<informationTable");
-    auto length  = (x.response.find("</informationTable>") - start) + (string{"</informationTable>"}.size());
-    auto xml_str = x.response.substr(start, length);
-    // spdlog::info("After cleaning file size {0}", xml_str.size());
 
-    tinyxml2::XMLDocument doc;
-    doc.Parse(xml_str.c_str());
-    if (!doc.Error()) {
-        auto infoTable = doc.FirstChildElement("informationTable")->FirstChildElement("infoTable");
-        while (infoTable != nullptr) {
-            const lock_guard<mutex> lock(holdings_mutex);
-            holdings.holder_cik.push_back(filing["cik"]);
-            holdings.holder_name.push_back(filing["holder"]);
-            holdings.form_type.push_back(filing["form_type"]);
-            holdings.date_filed.push_back(filing["date_filed"]);
-            holdings.filing_url.push_back(url);
-            holdings.effective_date.push_back(header["effective_date"]);
-            holdings.period_date.push_back(header["period_date"]);
-            holdings.holding_name.push_back(infoTable->FirstChildElement("nameOfIssuer")->GetText());
-            holdings.sec_type.push_back(infoTable->FirstChildElement("titleOfClass")->GetText());
-            auto cusip = infoTable->FirstChildElement("cusip")->GetText();
-            holdings.cusip.push_back(cusip);
-            holdings.ticker.push_back(rt.get_kvstore()->get(cusip));
-            holdings.market_value.push_back(atoi(infoTable->FirstChildElement("value")->GetText()) * 1000);
-            auto shprn = infoTable->FirstChildElement("shrsOrPrnAmt");
-            holdings.quantity.push_back(atoi(shprn->FirstChildElement("sshPrnamt")->GetText()));
-            holdings.qty_type.push_back(shprn->FirstChildElement("sshPrnamtType")->GetText());
-
-            if (infoTable->FirstChildElement("putCall") != nullptr) {
-                holdings.put_call.push_back(infoTable->FirstChildElement("putCall")->GetText());
-            } else {
-                holdings.put_call.push_back("");
-            }
-            infoTable = infoTable->NextSiblingElement();
-        }
+void thirteenf::EdgarHoldings::clean_tags(std::string &inp) {
+    std::vector<std::string> tags{"ns1:", "ns1 :", "ns1 :", "ns1", "ns2:", "N1:", "n1:", "n1:", "ns4:", "eis:", ":"};
+    for (auto &tag : tags) {
+        boost::replace_all(inp, tag, "");
     }
-    
 }
 
 
 
-
-void thirteenf::Holdings::get_header_info(strmap &header, const std::string &filing) {
-    auto edate = "EFFECTIVENESS DATE:";
-    auto pdate = "CONFORMED PERIOD OF REPORT:";
-
+void thirteenf::EdgarHoldings::get_header_info(strmap &header, const std::string &filing) {
+    auto edate        = "EFFECTIVENESS DATE:";
+    auto pdate        = "CONFORMED PERIOD OF REPORT:";
     auto start        = filing.find("<SEC-HEADER>");
     auto length       = (filing.find("</SEC-HEADER>") - start) + (string{"</SEC-HEADER>"}.size());
     auto header_text  = filing.substr(start, length);
@@ -238,56 +210,15 @@ void thirteenf::Holdings::get_header_info(strmap &header, const std::string &fil
 };
 
 
-void thirteenf::Holdings::clean_tags(std::string &inp) {
-    std::vector<std::string> tags{"ns1:", "ns1 :", "ns1 :", "ns1", "ns2:", "N1:", "n1:", "n1:", "ns4:", "eis:", ":"};
-    for (auto &tag : tags) {
-        boost::replace_all(inp, tag, "");
-    }
-}
 
-
-
-std::unique_ptr<std::string> thirteenf::Holdings::get_holdings_to_sql_statements() {
-    std::stringstream ss;
-    std::string prefix = {"insert into holdings values ( "};
-    for (size_t i = 0; i < holdings.holder_cik.size(); i++) {
-        ss << prefix;
-        ss << "'" << holdings.holder_cik.at(i) << "', ";
-        ss << "'" << holdings.holder_name.at(i) << "', ";
-        ss << "'" << holdings.form_type.at(i) << "', ";
-        ss << "'" << holdings.date_filed.at(i) << "', ";
-        ss << "'" << holdings.filing_url.at(i) << "', ";
-        ss << "'" << holdings.effective_date.at(i) << "', ";
-        ss << "'" << holdings.period_date.at(i) << "', ";
-
-        ss << "'" << holdings.holding_name.at(i) << "', ";
-        ss << "'" << holdings.sec_type.at(i) << "', ";
-        ss << "'" << holdings.cusip.at(i) << "', ";
-        ss << "'" << holdings.ticker.at(i) << "', ";
-        ss << holdings.market_value.at(i) << ", ";
-        ss << holdings.quantity.at(i) << ", ";
-        ss << "'" << holdings.qty_type.at(i) << "', ";
-        ss << "'" << holdings.put_call.at(i) << "');\n";
-    }
-    return std::make_unique<std::string>(ss.str());
-};
-
-
-
-std::string thirteenf::RuntimeContext::get_cns_location() {
-    return cns_fails_data;
-};
-
-
-
-void thirteenf::Holdings::load_cusip_ticker_map() {
+void thirteenf::EdgarHoldings::load_cusip_ticker_map() {
     size_t cntr = 0;
     std::string line;
-    ifstream f(rt.get_cns_location());
+    ifstream f(rtc.run_params.cns_fails_data);
     while (std::getline(f, line)) {
         auto fields = helpertools::split(line, "|");
         if (fields.size() == 6) {
-            rt.get_kvstore()->put(fields.at(1), fields.at(2));
+            rtc.kvs->put(fields.at(1), fields.at(2));
         }
         cntr++;
     }

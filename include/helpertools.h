@@ -8,10 +8,19 @@
 #include <vector>
 #include <SQLiteCpp/SQLiteCpp.h>
 #include "spdlog/spdlog.h"
+#include <tsl/ordered_map.h>
+
 
 namespace helpertools {
+    using strmap   = tsl::ordered_map<std::string, std::string>;
+    using rel_type = std::vector<strmap>;
+    using relation = std::unique_ptr<rel_type>;
+
 
     std::vector<std::string> split(std::string inp, const std::string &delim);
+
+    std::string map2str(tsl::ordered_map<std::string, std::string>& m);
+
 
     class KVStore {
     public:
@@ -54,12 +63,12 @@ namespace helpertools {
 
     class WebTools {
     public:
-        explicit WebTools(std::shared_ptr<helpertools::KVStore> &kvs)
+        explicit WebTools(std::unique_ptr<helpertools::KVStore> &kvs)
             : kvs{kvs} {};
         http_result http_get(const std::string &url);
 
     private:
-        std::shared_ptr<helpertools::KVStore> kvs;
+        std::unique_ptr<helpertools::KVStore>& kvs;
         std::string cache_location{"/tmp/rocksdb_data"};
     };
 
@@ -73,6 +82,7 @@ namespace helpertools {
 
         void runsql(const std::string& sql);
         std::shared_ptr<SQLite::Statement> runquery(std::string sql);
+        void save2db(relation& table, const std::string &table_name);
 
     private:
         const std::string db_location;

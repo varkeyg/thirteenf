@@ -8,12 +8,23 @@ using namespace std;
 
 std::vector<std::string> helpertools::split(std::string inp, const std::string &delim) {
     std::vector<std::string> entries;
-    if (inp.empty()){
+    if (inp.empty()) {
         return entries;
     }
     boost::split(entries, inp, boost::is_any_of(delim));
     return entries;
 };
+
+
+
+std::string helpertools::map2str(tsl::ordered_map<std::string, std::string> &m) {
+    stringstream ss;
+    for (auto &entry : m) {
+        ss << setw(15) << entry.first << " " << entry.second << "\n";
+    }
+    return ss.str();
+};
+
 
 
 
@@ -50,7 +61,7 @@ helpertools::http_result helpertools::WebTools::http_get(const std::string &url)
     hr.response = kvs->get(url);
     hr.error    = "";
     if (!hr.response.empty()) {
-        //spdlog::info("Using cached filing data for url {0}: ", url);
+        // spdlog::info("Using cached filing data for url {0}: ", url);
         return hr;
     }
     // else{
@@ -111,4 +122,45 @@ void helpertools::SqliteDB::runsql(const std::string &sql) {
 std::shared_ptr<SQLite::Statement> helpertools::SqliteDB::runquery(std::string sql) {
     auto query = std::make_shared<SQLite::Statement>(*db, sql);
     return query;
+};
+
+
+void helpertools::SqliteDB::save2db(relation &table, const std::string &table_name) {
+    stringstream ss;
+    ss << "create table " << table_name << "\n(\n";
+    if (table->empty()) {
+        return;
+    } else {
+        auto record = table->at(0);
+        for (auto &field : record) {
+            ss << "   " << setw(15) << left << field.first << "text,\n";
+        }
+        ss << "   " << setw(15) << left << "load_time"
+           << "text";
+        ss << "\n)";
+    }
+    runsql("drop table if exists " + table_name);
+    runsql(ss.str()); //create table
+    ss.str(std::string()); // clear the contents
+    size_t cntr         = 0;
+    std::string prefix  = "insert into " + table_name + " values (";
+    std::string ins_sql = "";
+    for (auto &rec : *table) {
+        ins_sql = prefix;
+        for (auto &field : rec) {
+            auto val = field.second;
+            boost::replace_all(val, "'", "");
+            ins_sql  = ins_sql + "'" + val + "'" + ",";
+        }
+        ins_sql = ins_sql +  "datetime('now','localtime') );";
+        ss << ins_sql;
+        cntr++;
+        if (cntr % 1000 == 0){
+            runsql(ss.str());
+            ss.str(std::string());
+            spdlog::info("Records inserted to table {0} : {1}", table_name, cntr);
+        }
+    }
+    runsql(ss.str());
+    spdlog::info("Records inserted to table {0} : {1}", table_name, cntr);
 };

@@ -56,3 +56,7 @@ target_include_directories(tfapp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(tfapp PUBLIC ${libtf})
 #target_link_libraries(tfapp PUBLIC glog::glog)
 #target_link_libraries(tfapp PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+add_custom_target(tfapp_with_config 
+COMMAND tfapp /Users/gvarkey/work/thirteenf/resources/thirteenf_config.json
+DEPENDS tfapp)
