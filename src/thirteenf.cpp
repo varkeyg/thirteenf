@@ -105,7 +105,7 @@ void thirteenf::EdgarHoldings::load_holdings() {
     for (int i = 0; i < rtc.run_params.num_threads; ++i) {
         workers.emplace_back(thread(&thirteenf::EdgarHoldings::load_holdings_worker, this));
     }
-    spdlog::info("Starting {0}", workers.size(), " threads to process filings");
+    spdlog::info("Starting {0} threads to process filings", workers.size());
     for (auto &t : workers) {
         t.join();
     }

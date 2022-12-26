@@ -155,7 +155,7 @@ void helpertools::SqliteDB::save2db(relation &table, const std::string &table_na
         ins_sql = ins_sql +  "datetime('now','localtime') );";
         ss << ins_sql;
         cntr++;
-        if (cntr % 1000 == 0){
+        if (cntr % 5000 == 0){
             runsql(ss.str());
             ss.str(std::string());
             spdlog::info("Records inserted to table {0} : {1}", table_name, cntr);
