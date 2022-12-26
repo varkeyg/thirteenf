@@ -127,21 +127,21 @@ std::shared_ptr<SQLite::Statement> helpertools::SqliteDB::runquery(std::string s
 
 void helpertools::SqliteDB::save2db(relation &table, const std::string &table_name) {
     stringstream ss;
-    ss << "create table " << table_name << "\n(\n";
-    if (table->empty()) {
-        return;
-    } else {
-        auto record = table->at(0);
-        for (auto &field : record) {
-            ss << "   " << setw(15) << left << field.first << "text,\n";
-        }
-        ss << "   " << setw(15) << left << "load_time"
-           << "text";
-        ss << "\n)";
-    }
-    runsql("drop table if exists " + table_name);
-    runsql(ss.str()); //create table
-    ss.str(std::string()); // clear the contents
+    // ss << "create table " << table_name << "\n(\n";
+    // if (table->empty()) {
+    //     return;
+    // } else {
+    //     auto record = table->at(0);
+    //     for (auto &field : record) {
+    //         ss << "   " << setw(15) << left << field.first << "text,\n";
+    //     }
+    //     ss << "   " << setw(15) << left << "load_time"
+    //        << "text";
+    //     ss << "\n)";
+    // }
+    // runsql("drop table if exists " + table_name);
+    // runsql(ss.str()); //create table
+    //ss.str(std::string()); // clear the contents
     size_t cntr         = 0;
     std::string prefix  = "insert into " + table_name + " values (";
     std::string ins_sql = "";
@@ -163,4 +163,24 @@ void helpertools::SqliteDB::save2db(relation &table, const std::string &table_na
     }
     runsql(ss.str());
     spdlog::info("Records inserted to table {0} : {1}", table_name, cntr);
+};
+
+
+
+
+std::string helpertools::SqliteDB::generate_ddl(relation &table, const std::string &table_name){
+    stringstream ss;
+    ss << "create table " << table_name << "\n(\n";
+    if (table->empty()) {
+        return "";
+    } else {
+        auto record = table->at(0);
+        for (auto &field : record) {
+            ss << "   " << setw(15) << left << field.first << "text,\n";
+        }
+        ss << "   " << setw(15) << left << "load_time"
+           << "text";
+        ss << "\n)";
+    }
+    return ss.str();
 };

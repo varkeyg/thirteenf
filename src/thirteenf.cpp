@@ -101,6 +101,8 @@ void thirteenf::EdgarIndex::load_index() {
 
 void thirteenf::EdgarHoldings::load_holdings() {
     load_cusip_ticker_map();
+    rtc.sqldb->runsql("delete from holdings");
+
     vector<thread> workers;
     for (int i = 0; i < rtc.run_params.num_threads; ++i) {
         workers.emplace_back(thread(&thirteenf::EdgarHoldings::load_holdings_worker, this));
@@ -167,8 +169,12 @@ void thirteenf::EdgarHoldings::load_holdings_worker() {
                 }
             }
             const lock_guard<mutex> lock(holdings_mutex);
-            rtc.holdings->insert(rtc.holdings->end(), records.begin(), records.end());
-            spdlog::info("Extracted {0} records from filing", records.size());
+            //rtc.holdings->insert(rtc.holdings->end(), records.begin(), records.end());
+            //spdlog::info("Extracted {0} records from filing", records.size());
+            auto rec_ptr = std::make_unique<rel_type>(records);
+            rtc.sqldb->save2db(rec_ptr, "holdings");
+            //records.clear();
+
         } catch (const std::exception &e) {
             spdlog::error(e.what());
             spdlog::error(helpertools::map2str(filing));

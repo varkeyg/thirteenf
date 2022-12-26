@@ -32,8 +32,8 @@ int main(int argc, char *argv[]) {
         spdlog::info("Entries in the index: {0}", rtc.index->size());
         thirteenf::EdgarHoldings eh{rtc};
         eh.load_holdings();
-        spdlog::info("Total Holdings records extracted {0}", rtc.holdings->size());
-        rtc.sqldb->save2db(rtc.holdings, "holdings");
+        //spdlog::info("Total Holdings records extracted {0}", rtc.holdings->size());
+        //rtc.sqldb->save2db(rtc.holdings, "holdings");
     }
     return 0;
 };

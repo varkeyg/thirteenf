@@ -81,6 +81,7 @@ namespace helpertools {
               };
 
         void runsql(const std::string& sql);
+        std::string generate_ddl(relation &table, const std::string &table_name);
         std::shared_ptr<SQLite::Statement> runquery(std::string sql);
         void save2db(relation& table, const std::string &table_name);
 
