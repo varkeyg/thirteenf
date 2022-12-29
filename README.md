@@ -1,9 +1,23 @@
 # thirteenf
-Project for analysis of holdings by large money managers
+Project for analysis of holdings by large money managers.
 
-#Setup
-1. Download the Dockerfile
-2. `docker build -t tf_image .`
-3. `docker run --name tf_container -v /Users/gvarkey/workspace:/home/gvarkey/workspace -v /tmp:/tmp -it tf_image`
-4. checkout the package to /Users/gvarkey/workspace from host computer (this can avoid copying ssh key to container)
+### Project Setup
+- You can install all the dependeices defined in `CMakeLists.txt` to setup the project.
+- Alternatively us docker to automatically setup the environment. 
+
+### Dockersetup
+  - Make sure docker is installed and running. 
+  
+  ```shell
+ xps√ ~ % docker --version
+Docker version 20.10.22, build 3a2c30b
+  ```
+- Download the Dockerfile and a shell script to build an image
+```
+wget https://github.com/varkeyg/thirteenf/blob/main/Dockerfile
+wget https://github.com/varkeyg/thirteenf/blob/main/build_run.sh
+```
+-  Run the `build_run.sh`
+
+Now you can access the container via command line or use vscode to access the container. Install the plugin's 
 
