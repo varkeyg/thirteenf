@@ -1,3 +1,9 @@
+sudo groupadd docker
+sudo usermod -aG docker ${USER}
+sudo chown "$USER":"$USER" /home/"$USER"/.docker -R
+sudo chmod g+rwx "$HOME/.docker" -R
+
+
 # Build the image. Make sure to run in the directory where the Dockerfile file is available
 docker build -t dev_img .
 

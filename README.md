@@ -14,8 +14,9 @@ Docker version 20.10.22, build 3a2c30b
   ```
 - Download the Dockerfile and a shell script to build an image
 ```
-wget https://github.com/varkeyg/thirteenf/blob/main/Dockerfile
-wget https://github.com/varkeyg/thirteenf/blob/main/build_run.sh
+git clone https://github.com/varkeyg/thirteenf.git
+cd thirteenf
+chmod a+x build_run.sh
 ```
 -  Run the `build_run.sh`
 
