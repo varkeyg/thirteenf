@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     spdlog::set_level(spdlog::level::info);
     std::vector<string> params(argv + 1, argv + argc);
 
-    if (params.empty()) params.push_back("/Users/gvarkey/work/thirteenf/resources/thirteenf_config.json");
+    if (params.empty()) params.push_back("/Users/gvarkey/workspace/thirteenf/resources/thirteenf_config.json");
 
     if (params.empty()) {
         spdlog::error("config file location was not passed in");
