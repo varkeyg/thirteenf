@@ -20,7 +20,7 @@ RUN apt-get update
 
 RUN apt-get install -y build-essential cmake git openssh-server unzip tar\
     gdb pkg-config valgrind systemd-coredump g++ gcc python3 python3-pip curl zip ninja-build software-properties-common\
-    libssl-dev vim gnupg zsh clangd clang-tidy clang-format bash-completion 
+    libssl-dev vim gnupg zsh clangd clang-tidy clang-format bash-completion linux-headers
 
 RUN pip3 install requests mysql-connector-python
 
